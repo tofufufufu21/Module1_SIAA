@@ -138,6 +138,107 @@ async function loadDashboard() {
   setText('d-total',    d.total_assets);
   setText('d-lowstock', d.low_stock_count ?? '—');
   setText('d-repair',   d.under_repair    ?? '—');
+
+  // Dynamic alert banner (no hardcoded text)
+  const alertCount = (parseInt(d.under_repair || 0, 10) > 0 ? 1 : 0) + (parseInt(d.low_stock_count || 0, 10) > 0 ? 1 : 0);
+  const banner = document.getElementById('alert-banner');
+  if (banner) {
+    if (!alertCount) {
+      banner.classList.add('hidden');
+    } else {
+      banner.classList.remove('hidden');
+      setText('alert-count', alertCount);
+      const parts = [];
+      if (parseInt(d.under_repair || 0, 10) > 0) parts.push(`${d.under_repair} under repair`);
+      if (parseInt(d.low_stock_count || 0, 10) > 0) parts.push(`${d.low_stock_count} below reorder point`);
+      setText('alert-msg', parts.join(' · '));
+    }
+  }
+
+  // Module 1: bring back Asset Distribution donut (live)
+  loadDashboardDistribution();
+}
+
+async function loadDashboardDistribution() {
+  const canvas = document.getElementById('donut-canvas');
+  const legend = document.getElementById('donut-legend');
+  if (!canvas || !legend) return;
+
+  const r = await api('asset_list', { per_page: 9999 });
+  if (!r.success) return;
+  const items = r.data?.items || [];
+
+  const map = new Map();
+  items.forEach(a => {
+    const k = a.category_name || 'Uncategorized';
+    map.set(k, (map.get(k) || 0) + 1);
+  });
+
+  const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 6);
+  const other = sorted.slice(6).reduce((s, [, v]) => s + v, 0);
+  if (other > 0) top.push(['Other', other]);
+
+  setText('donut-total', items.length);
+  renderDonut('donut-canvas', 'donut-legend', top, items.length);
+}
+
+function renderDonut(canvasId, legendId, entries, total) {
+  const c = document.getElementById(canvasId);
+  const legend = document.getElementById(legendId);
+  if (!c || !legend) return;
+
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const r = Math.min(w, h) / 2 - 8;
+  const ir = r * 0.62;
+
+  const palette = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b'];
+  let a0 = -Math.PI / 2;
+  legend.innerHTML = '';
+
+  entries.forEach(([name, val], idx) => {
+    const frac = total ? (val / total) : 0;
+    const a1 = a0 + frac * Math.PI * 2;
+    ctx.beginPath();
+    ctx.strokeStyle = palette[idx % palette.length];
+    ctx.lineWidth = r - ir;
+    ctx.arc(cx, cy, (r + ir) / 2, a0, a1);
+    ctx.stroke();
+    a0 = a1;
+
+    const li = document.createElement('div');
+    li.className = 'legend-item';
+    li.innerHTML =
+      `<div class="legend-left"><span class="legend-dot" style="background:${palette[idx % palette.length]}"></span>` +
+      `<span class="legend-name">${esc(name)}</span></div>` +
+      `<div class="legend-val">${val}</div>`;
+    legend.appendChild(li);
+  });
+
+  // donut hole
+  ctx.beginPath();
+  ctx.fillStyle = '#ffffff';
+  ctx.arc(cx, cy, ir - 1, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function quickTransferAsset() {
+  navigate('assets');
+  toast('info', 'Transfer Asset', 'Select an asset then click Transfer.');
+}
+function quickStockRequest() {
+  toast('info', 'Stock Request', 'This links to Supply Chain (Module 4).');
+}
+function quickGenerateReport() {
+  toast('info', 'Generate Report', 'This links to reports (Module 6).');
+}
+function quickDisposeAsset() {
+  navigate('assets');
+  toast('info', 'Dispose Asset', 'Open an asset then set status to Retired/Disposed.');
 }
 
 // ════════════════════════════════════════════════════════════
