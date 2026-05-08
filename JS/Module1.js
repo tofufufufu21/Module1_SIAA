@@ -5,7 +5,7 @@
 'use strict';
 
 // ── CONFIG ────────────────────────────────────────────────────
-const API = 'module1.php';  // Path to module1.php
+const API = '../PHP/module1.php';  // Path to module1.php
 
 // ── STATE ─────────────────────────────────────────────────────
 const S = {
@@ -336,6 +336,9 @@ async function loadStock(page = 1) {
 
 function stockRow(i, lowIds) {
   const qty   = parseFloat(i.total_qty_on_hand || 0);
+  const min   = parseFloat(i.min_level || 0);
+  const max   = parseFloat(i.max_level || 0);
+  const rop   = parseFloat(i.reorder_point || 0);
   const isOut = qty <= 0;
   const isLow = lowIds.has(i.id);
   let badge = `<span class="badge b-in-stock">In stock</span>`;
@@ -345,7 +348,9 @@ function stockRow(i, lowIds) {
     <td class="fw-600">${esc(i.item_code)}</td>
     <td>${esc(i.name)}</td>
     <td class="fw-600">${qty.toFixed(0)}</td>
-    <td class="td-muted">—</td><td class="td-muted">—</td><td class="td-muted">—</td>
+    <td class="td-muted">${min > 0 ? min.toFixed(0) : '—'}</td>
+    <td class="td-muted">${max > 0 ? max.toFixed(0) : '—'}</td>
+    <td class="td-muted">${rop > 0 ? rop.toFixed(0) : '—'}</td>
     <td>${badge}</td>
     <td>
       <div style="display:flex;gap:5px">

@@ -3,7 +3,7 @@
 // Route via:  module1.php?r=<route>
 // All responses are JSON: { success, message, data }
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../Db_Connector/Db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -370,7 +370,18 @@ function item_list(): never {
     $wc    = 'WHERE ' . implode(' AND ', $where);
     $cnt   = db()->prepare("SELECT COUNT(*) FROM stock_items si $wc"); $cnt->execute($params);
     $total = (int)$cnt->fetchColumn();
-    $stmt  = db()->prepare("SELECT si.*, c.name AS category_name, COALESCE(SUM(sl.quantity_on_hand),0) AS total_qty_on_hand FROM stock_items si LEFT JOIN categories c ON c.id=si.category_id LEFT JOIN stock_levels sl ON sl.item_id=si.id $wc GROUP BY si.id ORDER BY si.name ASC LIMIT $limit OFFSET $offset");
+    $stmt  = db()->prepare("SELECT si.*, c.name AS category_name,
+        COALESCE(SUM(sl.quantity_on_hand),0) AS total_qty_on_hand,
+        COALESCE(MAX(sl.min_level),0) AS min_level,
+        COALESCE(MAX(sl.max_level),0) AS max_level,
+        COALESCE(MAX(sl.reorder_point),0) AS reorder_point
+        FROM stock_items si
+        LEFT JOIN categories c ON c.id=si.category_id
+        LEFT JOIN stock_levels sl ON sl.item_id=si.id
+        $wc
+        GROUP BY si.id
+        ORDER BY si.name ASC
+        LIMIT $limit OFFSET $offset");
     $stmt->execute($params);
     ok(['items'=>$stmt->fetchAll(),'total'=>$total,'page'=>$page,'per_page'=>$limit,'total_pages'=>(int)ceil($total/$limit)]);
 }
