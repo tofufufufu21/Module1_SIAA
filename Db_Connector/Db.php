@@ -30,3 +30,4 @@ function db(): PDO {
     }
     return $pdo;
 }
+//testing
