@@ -79,6 +79,17 @@ async function upload(route, formData) {
 //  LOOKUP CACHE
 // ════════════════════════════════════════════════════════════
 const LookupCache = {};
+function invalidateLookup(res) {
+  Object.keys(LookupCache).forEach(k => {
+    if (k.startsWith(res)) delete LookupCache[k];
+  });
+}
+
+function setDatalist(id, options) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = options.map(v => `<option value="${esc(v)}"></option>`).join('');
+}
 
 async function getLookup(res, extra = {}) {
   const key = res + JSON.stringify(extra);
@@ -191,8 +202,10 @@ async function editAsset(id) {
   document.getElementById('modal-asset-title').textContent = `EDIT ASSET | ${a.asset_tag}`;
   resetTabs('modal-asset');
   await loadAssetSelects();
-  const fields = ['asset_tag','serial_number','category_id','make','model','os','firmware_version','status','notes','vendor_id','po_number','invoice_number','purchase_cost','date_acquired','warranty_start','warranty_end','sla_tier','support_contract_ref','assigned_user_id','department_id','location_id','cost_center'];
+  const fields = ['asset_tag','serial_number','category_id','make','model','os','firmware_version','status','notes','po_number','invoice_number','purchase_cost','date_acquired','warranty_start','warranty_end','sla_tier','support_contract_ref','department_id','location_id','cost_center'];
   fields.forEach(f => set('a-' + f, a[f]));
+  set('a-vendor_name', a.vendor_name || '');
+  set('a-assigned_user_text', a.assigned_user_name || '');
   set('a-id', a.id);
   loadAttachments(id);
   openModal('modal-asset');
@@ -201,8 +214,6 @@ async function editAsset(id) {
 async function loadAssetSelects() {
   await Promise.all([
     fillSelect('a-category_id',     'categories'),
-    fillSelect('a-vendor_id',       'vendors',     { blank: 'Select vendor' }),
-    fillSelect('a-assigned_user_id','users',        { blank: 'Unassigned', label: i => i.full_name }),
     fillSelect('a-department_id',   'departments',  { blank: 'Unassigned' }),
     fillSelect('a-location_id',     'locations',    { blank: 'Select', label: i => (i.site_name ? i.site_name+' › ':'')+i.name }),
   ]);
@@ -211,7 +222,9 @@ async function loadAssetSelects() {
 async function saveAsset() {
   const id = val('a-id');
   const body = {};
-  ['asset_tag','serial_number','category_id','make','model','os','firmware_version','status','notes','vendor_id','po_number','invoice_number','purchase_cost','date_acquired','warranty_start','warranty_end','sla_tier','support_contract_ref','assigned_user_id','department_id','location_id','cost_center'].forEach(f => { body[f] = val('a-'+f) || null; });
+  ['asset_tag','serial_number','category_id','make','model','os','firmware_version','status','notes','po_number','invoice_number','purchase_cost','date_acquired','warranty_start','warranty_end','sla_tier','support_contract_ref','department_id','location_id','cost_center'].forEach(f => { body[f] = val('a-'+f) || null; });
+  body.vendor_id = null;
+  body.assigned_user_id = null;
   if (!body.asset_tag)   { toast('warning', 'Required', 'Asset Tag is required.'); return; }
   if (!body.category_id) { toast('warning', 'Required', 'Category is required.'); return; }
   body.status = body.status || 'In-Stock';
@@ -241,7 +254,9 @@ async function viewAsset(id) {
   setText('vw-brand',    (a.make||'—')+' / '+(a.model||'—'));
   setText('vw-category', a.category_name);
   setText('vw-os',       a.os);
-  setText('vw-notes',    a.notes);
+  setText('vw-firmware', a.firmware_version);
+  setText('vw-status-row', a.status);
+  setText('vw-spec',     a.notes);
   setText('vw-vendor',   a.vendor_name);
   setText('vw-po',       (a.po_number||'—')+' / '+(a.invoice_number||'—'));
   setText('vw-cost',     a.purchase_cost ? peso(a.purchase_cost) : '—');
@@ -281,18 +296,54 @@ async function openTransfer(id) {
   document.getElementById('tf-tag').textContent = a.asset_tag;
   set('tf-current', a.assigned_user_name || 'Unassigned');
   set('tf-reason', '');
+  set('tf-user_text', '');
+  set('tf-location_text', '');
   document.getElementById('tf-signoff').checked = false;
-  await Promise.all([
-    fillSelect('tf-department', 'departments', { blank: 'Select department…' }),
-    fillSelect('tf-location',   'locations',   { blank: 'Select location…', label: i => (i.site_name?i.site_name+' › ':'')+i.name }),
-    fillSelect('tf-user',       'users',       { blank: 'Select user…', label: i => i.full_name }),
+  // Ensure latest master data appears even if rows were added outside this UI.
+  invalidateLookup('departments');
+  invalidateLookup('locations');
+  invalidateLookup('users');
+  const [depts, users, locs] = await Promise.all([
+    getLookup('departments'),
+    getLookup('users'),
+    getLookup('locations'),
   ]);
+  await fillSelect('tf-department', 'departments', { blank: 'Select' });
+
+  // Build suggestion maps for confirmTransfer.
+  S.tfUserMap = {};
+  const userOpts = (users || []).map(u => {
+    const v = `${u.full_name}${u.employee_id ? ` (${u.employee_id})` : ''}`;
+    S.tfUserMap[v.toLowerCase()] = u.id;
+    return v;
+  });
+  setDatalist('dl-users', userOpts);
+
+  S.tfLocMap = {};
+  const locOpts = (locs || []).map(l => {
+    const v = `${(l.site_name ? `${l.site_name} - ` : '')}${l.name}`;
+    S.tfLocMap[v.toLowerCase()] = l.id;
+    return v;
+  });
+  setDatalist('dl-locations', locOpts);
   openModal('modal-transfer');
 }
 
 async function confirmTransfer() {
   if (!document.getElementById('tf-signoff').checked) { toast('warning', 'Sign-off Required', 'Please confirm the new custodian has acknowledged.'); return; }
-  const r = await api('asset_transfer', {}, { asset_id: S.assetId, to_department_id: val('tf-department')||null, to_location_id: val('tf-location')||null, to_user_id: val('tf-user')||null, reason: val('tf-reason') });
+  const cust = val('tf-user_text');
+  const loc  = val('tf-location_text');
+  if (!cust) { toast('warning', 'Required', 'New custodian is required.'); return; }
+  if (!val('tf-department')) { toast('warning', 'Required', 'New department is required.'); return; }
+  const toUserId = (S.tfUserMap?.[cust.toLowerCase()] ?? null);
+  const toLocId  = loc ? (S.tfLocMap?.[loc.toLowerCase()] ?? null) : null;
+  const r = await api('asset_transfer', {}, {
+    asset_id: S.assetId,
+    to_department_id: val('tf-department') || null,
+    to_location_id: toLocId,
+    to_user_id: toUserId,
+    reason: val('tf-reason')
+  });
   if (r.success) { toast('success', 'Transfer Complete'); closeModal('modal-transfer'); loadAssets(S.assetPage); }
   else toast('error', 'Transfer Failed', r.message);
 }
@@ -472,10 +523,11 @@ async function openMasterData() {
 }
 
 async function loadMasterDataLists() {
-  const [depts, sites, locs] = await Promise.all([
+  const [depts, sites, locs, vendors] = await Promise.all([
     getLookup('departments'),
     getLookup('sites'),
-    getLookup('locations')
+    getLookup('locations'),
+    getLookup('vendors')
   ]);
 
   document.getElementById('md-dept-list').innerHTML = (depts?.length
@@ -485,6 +537,10 @@ async function loadMasterDataLists() {
   document.getElementById('md-site-list').innerHTML = (sites?.length
     ? sites.map(s => `<div class="mini-item"><span>${esc(s.name)}</span></div>`).join('')
     : '<div class="mini-item"><span>No sites yet.</span></div>');
+
+  document.getElementById('md-vendor-list').innerHTML = (vendors?.length
+    ? vendors.map(v => `<div class="mini-item"><span>${esc(v.name)}</span></div>`).join('')
+    : '<div class="mini-item"><span>No vendors yet.</span></div>');
 
   document.getElementById('md-loc-list').innerHTML = (locs?.length
     ? locs.map(l => `<div class="mini-item"><span>${esc((l.site_name ? `${l.site_name} › ` : '') + l.name)}</span></div>`).join('')
@@ -531,6 +587,20 @@ async function addLocation() {
   toast('success', 'Location Added');
 }
 
+async function addVendor() {
+  const name = val('md-vendor-name');
+  const email = val('md-vendor-email');
+  if (!name) { toast('warning', 'Required', 'Vendor name is required.'); return; }
+  const payload = { name };
+  if (email) payload.email = email;
+  const r = await api('lookup_create', { res: 'vendors' }, payload);
+  if (!r.success) { toast('error', 'Failed', r.message); return; }
+  set('md-vendor-name', '');
+  set('md-vendor-email', '');
+  await refreshMasterLookups();
+  toast('success', 'Vendor Added');
+}
+
 async function refreshMasterLookups() {
   Object.keys(LookupCache).forEach(k => delete LookupCache[k]);
   await Promise.all([
@@ -549,7 +619,16 @@ async function openIssueStock() {
   document.getElementById('issue-oos').classList.add('hidden');
   const sel = document.getElementById('issue-item');
   sel.innerHTML = '<option value="">Select Item</option>';
-  S.stockItems.forEach(i => { const o = document.createElement('option'); o.value=i.id; o.dataset.qty=i.total_qty_on_hand||0; o.textContent=`${i.name} (${i.item_code})`; sel.appendChild(o); });
+  S.stockItems.forEach(i => {
+    const o = document.createElement('option');
+    o.value = i.id;
+    o.dataset.qty = i.total_qty_on_hand || 0;
+    o.dataset.uom = i.unit_of_measure || 'pcs';
+    o.textContent = `${i.name} (${i.item_code})`;
+    sel.appendChild(o);
+  });
+  const uomSel = document.getElementById('issue-uom');
+  if (uomSel) uomSel.innerHTML = '<option value="">—</option>';
   await fillSelect('issue-location','locations',{blank:'Select location…',label:i=>(i.site_name?i.site_name+' › ':'')+i.name});
   openModal('modal-issue');
 }
@@ -558,6 +637,9 @@ function updateIssueQty() {
   const opt = document.getElementById('issue-item').selectedOptions[0];
   setText('issue-avail', opt?.dataset?.qty ?? '—');
   document.getElementById('issue-oos').classList.add('hidden');
+  const uom = opt?.dataset?.uom || 'pcs';
+  const uomSel = document.getElementById('issue-uom');
+  if (uomSel) uomSel.innerHTML = `<option value="${esc(uom)}">${esc(uom)}(s)</option>`;
 }
 
 function checkOos() {

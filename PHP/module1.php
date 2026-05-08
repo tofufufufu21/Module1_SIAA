@@ -559,7 +559,12 @@ function lookup_create() {
     $allowed = ['categories','departments','sites','locations','vendors','users'];
     if (!in_array($res, $allowed)) fail("Unknown resource.");
     $b = body();
-    if (empty($b['name'])) fail('Name is required.');
+    if ($res === 'users') {
+        if (empty($b['full_name'])) fail('Full name is required.');
+        if (empty($b['email'])) fail('Email is required.');
+    } else {
+        if (empty($b['name'])) fail('Name is required.');
+    }
     $fields = ['categories'=>['name','description'],'departments'=>['name','cost_center'],'sites'=>['name','address'],'locations'=>['name','description','site_id'],'vendors'=>['name','contact_name','email','phone','address','sla_notes'],'users'=>['employee_id','full_name','email','phone','department_id','role']];
     $data = [];
     foreach ($fields[$res] ?? ['name'] as $col) { if (isset($b[$col])) $data[$col] = $b[$col]; }
