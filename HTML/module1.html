@@ -28,7 +28,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14M5 12h14M5 16h6"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
     Stock Room
   </a>
-  <div class="sb-section">OTHER MODULES</div>
+  <div class="sb-section">OPERATIONS</div>
   <a class="nav-item" href="module2.html">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
     Service Planner
@@ -90,7 +90,6 @@
           <div style="font-size:13px;color:var(--text-2);margin-top:2px">IT Asset overview — <span id="today-date"></span></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <div class="tb-admin-label">System Admin</div>
           <button class="btn btn-secondary" onclick="navigate('assets')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export Report
           </button>
@@ -174,8 +173,8 @@
       <div class="page-hdr">
         <div class="page-title">Stock Room</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" onclick="openIssueStock()">Issue Stock</button>
           <button class="btn btn-secondary" onclick="openReceivedStock()">Received Stock</button>
+          <button class="btn btn-secondary" onclick="openIssueStock()">Issue Stock</button>
           <button class="btn btn-primary"   onclick="openAddStockItem()">Add Item</button>
         </div>
       </div>
@@ -325,6 +324,23 @@
         <div class="detail-row"><span class="detail-key">Location</span><span class="detail-val" id="vw-location"></span></div>
         <div class="detail-row"><span class="detail-key">Cost Center</span><span class="detail-val" id="vw-cc"></span></div>
       </div>
+      <div class="detail-section">
+        <div class="detail-hdr">MAINTENANCE SUMMARY</div>
+        <div class="ms-grid">
+          <div class="ms-card">
+            <div class="ms-value" id="vw-ticket-total">0</div>
+            <div class="ms-label">Total Tickets</div>
+          </div>
+          <div class="ms-card">
+            <div class="ms-value" id="vw-ticket-open">0</div>
+            <div class="ms-label">Open</div>
+          </div>
+          <div class="ms-card">
+            <div class="ms-value" id="vw-ticket-closed">0</div>
+            <div class="ms-label">Closed</div>
+          </div>
+        </div>
+      </div>
       <div class="detail-section"><div class="detail-hdr">HISTORY TIMELINE</div><div style="padding:14px 16px" id="vw-timeline"></div></div>
     </div>
     <div class="modal-footer">
@@ -368,7 +384,7 @@
 
 <!-- ══ MODAL: ADD/EDIT STOCK ITEM ══ -->
 <div class="modal-overlay" id="modal-stock-item">
-  <div class="modal modal-sm">
+  <div class="modal">
     <div class="modal-hdr"><span class="modal-hdr-title" id="modal-stock-title">Add Item</span><button class="modal-x" onclick="closeModal('modal-stock-item')">✕</button></div>
     <div class="modal-body">
       <form id="form-stock" onsubmit="return false">
@@ -381,9 +397,9 @@
           <div class="form-group"><label class="form-label">Unit of Measure <span class="req">*</span></label>
             <select class="form-control" id="si-unit_of_measure"><option value="pcs">pcs</option><option value="box">box</option><option value="ream">ream</option><option value="liter">liter</option><option value="bottle">bottle</option><option value="set">set</option></select>
           </div>
-          <div class="form-group"><label class="form-label">Min Level</label><input class="form-control" id="si-min_level" type="number" step="0.001" placeholder="e.g. 20"></div>
-          <div class="form-group"><label class="form-label">Max Level</label><input class="form-control" id="si-max_level" type="number" step="0.001" placeholder="e.g. 100"></div>
-          <div class="form-group"><label class="form-label">Reorder Point (ROP)</label><input class="form-control" id="si-reorder_point" type="number" step="0.001" placeholder="e.g. 20"></div>
+          <div class="form-group"><label class="form-label">Min Level <span class="req">*</span></label><input class="form-control" id="si-min_level" type="number" step="0.001" placeholder="e.g. 20"></div>
+          <div class="form-group"><label class="form-label">Max Level <span class="req">*</span></label><input class="form-control" id="si-max_level" type="number" step="0.001" placeholder="e.g. 100"></div>
+          <div class="form-group"><label class="form-label">Reorder Point (ROP) <span class="req">*</span></label><input class="form-control" id="si-reorder_point" type="number" step="0.001" placeholder="e.g. 20"></div>
           <div class="form-group f-full"><label class="form-label">Description</label><textarea class="form-control" id="si-description" rows="2" placeholder="Enter description (optional)"></textarea></div>
         </div>
       </form>

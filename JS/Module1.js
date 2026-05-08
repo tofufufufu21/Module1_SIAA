@@ -254,6 +254,14 @@ async function viewAsset(id) {
   setText('vw-cc',       a.cost_center || '—');
 
   const log = a.lifecycle_log || [];
+  const closedTypes = new Set(['CheckedIn', 'Retired', 'Disposed', 'Found']);
+  const totalTickets = log.length;
+  const closedTickets = log.filter(l => closedTypes.has(l.action_type)).length;
+  const openTickets = Math.max(totalTickets - closedTickets, 0);
+  setText('vw-ticket-total', totalTickets);
+  setText('vw-ticket-open', openTickets);
+  setText('vw-ticket-closed', closedTickets);
+
   document.getElementById('vw-timeline').innerHTML = log.length
     ? log.map(l => `<div class="timeline-item"><div class="tl-dot"></div><div><div class="tl-label">${esc(l.action_type)}${l.to_status?' → '+l.to_status:''}${l.reason?' — '+l.reason:''}</div><div class="tl-date">${l.performed_at} · ${esc(l.performed_by_name||'—')}</div></div></div>`).join('')
     : '<p class="text-muted" style="font-size:13px">No history yet.</p>';
@@ -443,6 +451,10 @@ async function saveStockItem() {
   if (!body.item_code) { toast('warning','Required','Item Code is required.'); return; }
   if (!body.name)      { toast('warning','Required','Name is required.'); return; }
   if (!body.category_id) { toast('warning','Required','Category is required.'); return; }
+  if (body.min_level === null || body.max_level === null || body.reorder_point === null) {
+    toast('warning','Required','Min Level, Max Level, and Reorder Point are required.');
+    return;
+  }
   if (id) body.id = id;
   const r = await api(id ? 'item_update' : 'item_create', {}, body);
   if (r.success) {
