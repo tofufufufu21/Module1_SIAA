@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IT&DS | Module 1 — Asset & Inventory</title>
 <link rel="stylesheet" href="../CSS/Module1.css">
+<style>
+  /* ── Placeholder card ── */
+  .module-placeholder {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px; padding:24px 16px; text-align:center;
+    background:#f8fafc; border:1px dashed #d1d5db; border-radius:8px;
+    color:var(--text-3); font-size:12px;
+  }
+  .module-placeholder .mp-icon { font-size:22px; }
+  .module-placeholder .mp-msg  { font-size:12px; font-weight:600; color:var(--text-2); }
+  .module-placeholder .mp-src  { font-size:11px; color:var(--text-3); }
+  .module-placeholder .mp-src strong { color:var(--teal); }
+</style>
 </head>
 <body>
 
@@ -75,8 +88,16 @@
     <div class="tb-spacer"></div>
     <div class="role-toggle"><button class="active">User</button><button>Admin</button></div>
     <div class="tb-actions">
-      <button class="tb-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></button>
-      <button class="tb-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></button>
+      <button class="tb-btn" title="Analytics"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></button>
+      <button class="tb-btn" title="Notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></button>
+      <!-- SIGN OUT BUTTON -->
+      <button class="tb-btn" title="Sign Out" onclick="signOut()" style="color:#ef4444">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -96,18 +117,49 @@
           <button class="btn btn-primary" onclick="navigate('assets');setTimeout(openAddAsset,200)">+ Add Asset</button>
         </div>
       </div>
+
+      <!-- STAT CARDS -->
       <div class="stat-grid stat-grid-5">
-        <div class="stat-card sc-blue"><div class="sc-label">TOTAL ASSETS</div><div class="sc-value" id="d-total">—</div><div class="sc-sub">Serialized items</div></div>
-        <div class="stat-card sc-teal"><div class="sc-label">PM COMPLIANCE</div><div class="sc-value teal">95%</div><div class="sc-sub"><span style="color:var(--teal)">↑ 2.1%</span> vs last month</div></div>
-        <div class="stat-card sc-orange"><div class="sc-label">STOCK ALERTS</div><div class="sc-value orange" id="d-lowstock">—</div><div class="sc-sub">Below reorder point</div></div>
-        <div class="stat-card sc-red"><div class="sc-label">OPEN WORK ORDERS</div><div class="sc-value red">—</div><div class="sc-sub">↑ 7 overdue</div></div>
-        <div class="stat-card sc-purple"><div class="sc-label">UNDER REPAIR</div><div class="sc-value purple" id="d-repair">—</div><div class="sc-sub">↑ 3 this week</div></div>
+        <!-- Live from Module 1 API -->
+        <div class="stat-card sc-blue">
+          <div class="sc-label">TOTAL ASSETS</div>
+          <div class="sc-value" id="d-total">—</div>
+          <div class="sc-sub">Serialized items</div>
+        </div>
+        <!-- Requires Module 2 -->
+        <div class="stat-card sc-teal">
+          <div class="sc-label">PM COMPLIANCE</div>
+          <div class="sc-value teal">—</div>
+          <div class="sc-sub" style="font-style:italic">Requires Module 2</div>
+        </div>
+        <!-- Live from Module 1 API -->
+        <div class="stat-card sc-orange">
+          <div class="sc-label">STOCK ALERTS</div>
+          <div class="sc-value orange" id="d-lowstock">—</div>
+          <div class="sc-sub">Below reorder point</div>
+        </div>
+        <!-- Requires Module 3 -->
+        <div class="stat-card sc-red">
+          <div class="sc-label">OPEN WORK ORDERS</div>
+          <div class="sc-value red">—</div>
+          <div class="sc-sub" style="font-style:italic">Requires Module 3</div>
+        </div>
+        <!-- Live from Module 1 API -->
+        <div class="stat-card sc-purple">
+          <div class="sc-label">UNDER REPAIR</div>
+          <div class="sc-value purple" id="d-repair">—</div>
+          <div class="sc-sub">Tracked in Asset Master</div>
+        </div>
       </div>
+
+      <!-- ALERT BANNER -->
       <div class="alert-banner" id="alert-banner">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
         <div><strong><span id="alert-count">0</span> Critical Alerts</strong> — <span id="alert-msg">No alerts.</span></div>
         <a href="#" id="alert-link" onclick="return false">View All →</a>
       </div>
+
+      <!-- QUICK ACTIONS -->
       <div class="quick-grid">
         <div class="quick-card" onclick="navigate('assets');setTimeout(openAddAsset,200)"><div class="q-icon" style="background:rgba(59,130,246,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></div><div><div class="q-label">Add Asset</div><div class="q-sub">Register new item</div></div></div>
         <div class="quick-card" onclick="navigate('assets')"><div class="q-icon" style="background:rgba(239,68,68,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div><div class="q-label">Run Health Check</div><div class="q-sub">Scan all assets</div></div></div>
@@ -118,13 +170,20 @@
         <div class="quick-card" onclick="quickGenerateReport()"><div class="q-icon" style="background:rgba(59,130,246,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 17V9"/><path d="M12 17V7"/><path d="M16 17v-5"/></svg></div><div><div class="q-label">Generate Report</div><div class="q-sub">Export analytics</div></div></div>
         <div class="quick-card" onclick="quickDisposeAsset()"><div class="q-icon" style="background:rgba(239,68,68,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 16h10l1-16"/></svg></div><div><div class="q-label">Dispose Asset</div><div class="q-sub">Retire / write-off</div></div></div>
       </div>
-      <!-- keep chart area empty (placeholder like earlier) -->
+
+      <!-- CHARTS ROW -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- Fleet Health Score — Module 5b -->
         <div class="table-card" style="padding:20px">
           <div style="font-size:14px;font-weight:700;margin-bottom:4px">Fleet Health Score</div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:16px">Last 7 Days</div>
-          <div style="height:140px;background:var(--content-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:13px">Chart — connects to Module 5</div>
+          <div class="module-placeholder" style="height:140px">
+            <div class="mp-icon">📊</div>
+            <div class="mp-msg">No data available</div>
+            <div class="mp-src">Requires <strong>Module 5b — Asset Health</strong></div>
+          </div>
         </div>
+        <!-- Asset Distribution — Live from Module 1 -->
         <div class="table-card" style="padding:20px">
           <div style="font-size:14px;font-weight:700;margin-bottom:4px">Asset Distribution</div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:16px">By category</div>
@@ -145,103 +204,123 @@
         </div>
       </div>
 
-      <!-- scroll-down sections (mockup-style) -->
+      <!-- SCROLL-DOWN SECTIONS -->
       <div class="dash-stack" style="margin-top:16px">
         <div class="dash-top-grid">
+
+          <!-- PM Completion — Requires Module 2 -->
           <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">PM Completion</div><div class="dc-sub">This month</div></div></div>
+            <div class="dc-hdr">
+              <div><div class="dc-title">PM Completion</div><div class="dc-sub">This month</div></div>
+            </div>
             <div class="dc-body">
-              <div style="font-size:32px;font-weight:900;color:var(--teal)">78%</div>
-              <div style="font-size:12px;color:var(--text-2);margin-top:4px">Tasks completed on time</div>
-              <div class="mini-bars">
-                <div class="list-row"><span>Completed</span><span class="pill">39</span></div>
-                <div class="list-row"><span>In Progress</span><span class="pill blue">8</span></div>
-                <div class="list-row"><span>Overdue</span><span class="pill red">3</span></div>
-                <div class="list-row"><span>Planned</span><span class="pill">11</span></div>
+              <div class="module-placeholder">
+                <div class="mp-icon">📋</div>
+                <div class="mp-msg">No data available</div>
+                <div class="mp-src">Requires <strong>Module 2 — Service Planner</strong></div>
               </div>
             </div>
           </div>
+
+          <!-- Incident Summary — Requires Module 5a -->
           <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">Incident Summary</div><div class="dc-sub">This month</div></div><button class="btn btn-secondary btn-xs" onclick="return false">+ Log</button></div>
-            <div class="dc-body">
-              <div class="list-row"><span>Open incidents</span><b>7</b></div>
-              <div class="list-row"><span>In progress</span><b>5</b></div>
-              <div class="list-row"><span>Resolved (Apr)</span><b>34</b></div>
-              <div class="list-row"><span>Avg resolution time</span><b>4.2 hrs</b></div>
-              <div class="list-row"><span>High priority open</span><b>3</b></div>
-              <div class="list-row"><span>SLA breach risk</span><b>2</b></div>
+            <div class="dc-hdr">
+              <div><div class="dc-title">Incident Summary</div><div class="dc-sub">This month</div></div>
+              <button class="btn btn-secondary btn-xs" onclick="return false">+ Log</button>
             </div>
-          </div>
-          <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">Technician Workload</div><div class="dc-sub">Open tasks assigned</div></div></div>
             <div class="dc-body">
-              <div class="list-row"><span>J. Dela Cruz</span><b>9</b></div>
-              <div class="list-row"><span>M. Santos</span><b>7</b></div>
-              <div class="list-row"><span>R. Reyes</span><b>5</b></div>
-              <div class="list-row"><span>IT Admin</span><b>11</b></div>
-            </div>
-          </div>
-          <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">April 2026</div><div class="dc-sub">Upcoming PM tasks</div></div></div>
-            <div class="dc-body">
-              <div class="cal">
-                <b>Su</b><b>Mo</b><b>Tu</b><b>We</b><b>Th</b><b>Fr</b><b>Sa</b>
-                <span></span><span></span><span></span><span>1</span><span>2</span><span>3</span><span>4</span>
-                <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
-                <span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span style="background:rgba(16,185,129,.15);border-radius:8px;text-align:center;color:var(--teal);font-weight:800">18</span>
-                <span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span>
-                <span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span></span><span></span>
-              </div>
-              <div style="margin-top:10px;font-size:11px;color:var(--text-2)">
-                <span class="pill" style="margin-right:6px">Today</span>
-                <span class="pill orange" style="margin-right:6px">PM Due</span>
-                <span class="pill red">Overdue</span>
+              <div class="module-placeholder">
+                <div class="mp-icon">🔔</div>
+                <div class="mp-msg">No data available</div>
+                <div class="mp-src">Requires <strong>Module 5a — Incident Logs</strong></div>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- Technician Workload — Requires Module 3 -->
+          <div class="dash-card">
+            <div class="dc-hdr">
+              <div><div class="dc-title">Technician Workload</div><div class="dc-sub">Open tasks assigned</div></div>
+            </div>
+            <div class="dc-body">
+              <div class="module-placeholder">
+                <div class="mp-icon">👷</div>
+                <div class="mp-msg">No data available</div>
+                <div class="mp-src">Requires <strong>Module 3 — Operations</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming PM Calendar — Requires Module 2 -->
+          <div class="dash-card">
+            <div class="dc-hdr">
+              <div><div class="dc-title" id="cal-month-label">— —</div><div class="dc-sub">Upcoming PM tasks</div></div>
+            </div>
+            <div class="dc-body">
+              <div class="module-placeholder">
+                <div class="mp-icon">📅</div>
+                <div class="mp-msg">No schedule data available</div>
+                <div class="mp-src">Requires <strong>Module 2 — Service Planner</strong></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /dash-top-grid -->
 
         <div class="dash-mid-grid">
+
+          <!-- Open Incidents — Requires Module 5a -->
           <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">Open Incidents</div><div class="dc-sub">Needs resolution</div></div><span class="pill red">+7 open</span></div>
+            <div class="dc-hdr">
+              <div><div class="dc-title">Open Incidents</div><div class="dc-sub">Needs resolution</div></div>
+            </div>
             <div class="dc-body">
-              <div class="list-row"><span>RAID Array Degraded — HP ProLiant</span><span class="pill red">Open</span></div>
-              <div class="list-row"><span>Fan Failure — ThinkPad X1 98°C</span><span class="pill red">Open</span></div>
-              <div class="list-row"><span>UPS Battery EOL — APC 3000VA</span><span class="pill orange">In Prog</span></div>
-              <div class="list-row"><span>Printer Paper Jam — Canon HR</span><span class="pill orange">In Prog</span></div>
-              <div class="list-row"><span>No Display — HP Monitor Finance</span><span class="pill">Pending</span></div>
-              <div style="margin-top:12px;text-align:right"><button class="btn btn-secondary btn-sm" onclick="return false">View All Incidents →</button></div>
+              <div class="module-placeholder" style="min-height:160px">
+                <div class="mp-icon">⚠️</div>
+                <div class="mp-msg">No incident data available</div>
+                <div class="mp-src">Requires <strong>Module 5a — Incident Logs</strong></div>
+              </div>
+              <div style="margin-top:12px;text-align:right">
+                <button class="btn btn-secondary btn-sm" onclick="return false">View All Incidents →</button>
+              </div>
             </div>
           </div>
+
+          <!-- Upcoming PM Tasks — Requires Module 2 -->
           <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">Upcoming PM Tasks</div><div class="dc-sub">Next 7 days</div></div><button class="btn btn-secondary btn-xs" onclick="return false">+ Schedule</button></div>
+            <div class="dc-hdr">
+              <div><div class="dc-title">Upcoming PM Tasks</div><div class="dc-sub">Next 7 days</div></div>
+              <button class="btn btn-secondary btn-xs" onclick="return false">+ Schedule</button>
+            </div>
             <div class="dc-body">
-              <div class="list-row"><span>HP ProLiant — HDD Replacement</span><span class="pill red">Overdue</span></div>
-              <div class="list-row"><span>Dell PowerEdge — Firmware &amp; Thermal</span><span class="pill orange">In Prog</span></div>
-              <div class="list-row"><span>APC UPS — Battery Load Test</span><span class="pill">Upcoming</span></div>
-              <div class="list-row"><span>Canon Printer — Nozzle &amp; Cleaning</span><span class="pill">Upcoming</span></div>
-              <div style="margin-top:12px;text-align:right"><button class="btn btn-secondary btn-sm" onclick="return false">View PM Schedule →</button></div>
+              <div class="module-placeholder" style="min-height:160px">
+                <div class="mp-icon">🔧</div>
+                <div class="mp-msg">No PM task data available</div>
+                <div class="mp-src">Requires <strong>Module 2 — Service Planner</strong></div>
+              </div>
+              <div style="margin-top:12px;text-align:right">
+                <button class="btn btn-secondary btn-sm" onclick="return false">View PM Schedule →</button>
+              </div>
             </div>
           </div>
+
+          <!-- Top Issues by Category — Requires Module 5a -->
           <div class="dash-card">
-            <div class="dc-hdr"><div><div class="dc-title">Top Issues by Category</div><div class="dc-sub">Last 30 days</div></div></div>
+            <div class="dc-hdr">
+              <div><div class="dc-title">Top Issues by Category</div><div class="dc-sub">Last 30 days</div></div>
+            </div>
             <div class="dc-body">
-              <div class="list-row"><span>Hardware Failure</span><b>18</b></div>
-              <div class="bar"><i style="width:72%;background:#ef4444"></i></div>
-              <div class="list-row"><span>Software / OS Issues</span><b>24</b></div>
-              <div class="bar"><i style="width:88%;background:#f59e0b"></i></div>
-              <div class="list-row"><span>Network Issues</span><b>9</b></div>
-              <div class="bar"><i style="width:40%;background:#3b82f6"></i></div>
-              <div class="list-row"><span>Power / UPS</span><b>7</b></div>
-              <div class="bar"><i style="width:32%;background:#10b981"></i></div>
-              <div class="list-row"><span>Other</span><b>5</b></div>
-              <div class="bar"><i style="width:22%;background:#64748b"></i></div>
-              <div style="margin-top:10px;color:var(--text-2);font-size:11px">Total incidents (30d) <b style="float:right;color:var(--text)">75</b></div>
+              <div class="module-placeholder" style="min-height:160px">
+                <div class="mp-icon">📈</div>
+                <div class="mp-msg">No category data available</div>
+                <div class="mp-src">Requires <strong>Module 5a — Incident Logs</strong></div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+
+        </div><!-- /dash-mid-grid -->
+      </div><!-- /dash-stack -->
+    </div><!-- /page-dashboard -->
 
     <!-- ══════════════════ ASSET MASTER ══════════════════ -->
     <div class="page-view" id="page-assets">
@@ -339,6 +418,27 @@
       <button class="btn btn-primary" id="confirm-ok">Confirm</button>
     </div>
   </div></div></div>
+</div>
+
+<!-- ══ MODAL: SIGN OUT ══ -->
+<div class="modal-overlay" id="modal-signout">
+  <div class="modal modal-sm">
+    <div class="modal-hdr">
+      <span class="modal-hdr-title">SIGN OUT</span>
+      <button class="modal-x" onclick="closeModal('modal-signout')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-body">
+        <div class="ico">🔒</div>
+        <h3>Sign out of IT&amp;DS?</h3>
+        <p>Your session will be ended. Authentication is managed by <strong>Module 6 — System Admin</strong>.</p>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-secondary" onclick="closeModal('modal-signout')">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ MODAL: ADD/EDIT ASSET ══ -->
@@ -452,18 +552,9 @@
       <div class="detail-section">
         <div class="detail-hdr">MAINTENANCE SUMMARY</div>
         <div class="ms-grid">
-          <div class="ms-card">
-            <div class="ms-value" id="vw-ticket-total">0</div>
-            <div class="ms-label">Total Tickets</div>
-          </div>
-          <div class="ms-card">
-            <div class="ms-value" id="vw-ticket-open">0</div>
-            <div class="ms-label">Open</div>
-          </div>
-          <div class="ms-card">
-            <div class="ms-value" id="vw-ticket-closed">0</div>
-            <div class="ms-label">Closed</div>
-          </div>
+          <div class="ms-card"><div class="ms-value" id="vw-ticket-total">0</div><div class="ms-label">Total Tickets</div></div>
+          <div class="ms-card"><div class="ms-value" id="vw-ticket-open">0</div><div class="ms-label">Open</div></div>
+          <div class="ms-card"><div class="ms-value" id="vw-ticket-closed">0</div><div class="ms-label">Closed</div></div>
         </div>
       </div>
       <div class="detail-section"><div class="detail-hdr">HISTORY TIMELINE</div><div style="padding:14px 16px" id="vw-timeline"></div></div>
@@ -592,7 +683,7 @@
   </div>
 </div>
 
-<!-- ══ MODAL: MASTER DATA (DEPT/SITE/LOCATION) ══ -->
+<!-- ══ MODAL: MASTER DATA ══ -->
 <div class="modal-overlay" id="modal-masterdata">
   <div class="modal modal-lg">
     <div class="modal-hdr">
@@ -644,5 +735,24 @@
 </div>
 
 <script src="../JS/Module1.js"></script>
+<script>
+  // ── Sign Out ──────────────────────────────────────────────
+  function signOut() {
+    openModal('modal-signout');
+  }
+  function confirmSignOut() {
+    closeModal('modal-signout');
+    // TODO: clear session and redirect — handled by Module 6 (System Admin)
+    toast('info', 'Signed Out', 'Session ended. Redirect handled by Module 6 — System Admin.');
+  }
+
+  // ── Set calendar month label dynamically ─────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const lbl = document.getElementById('cal-month-label');
+    if (lbl) {
+      lbl.textContent = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+  });
+</script>
 </body>
 </html>
