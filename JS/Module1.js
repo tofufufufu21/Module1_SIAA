@@ -5,7 +5,19 @@
 'use strict';
 
 // ── CONFIG ────────────────────────────────────────────────────
-const API = '../PHP/module1.php';  // Path to module1.php
+const API = (() => {
+  // Prefer an absolute localhost path so requests still work
+  // even when this page is opened from a different dev server.
+  if (window.location.protocol.startsWith('http')) {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const appIdx = parts.findIndex(p => p.toLowerCase() === 'siaa_module1');
+    if (appIdx >= 0) {
+      const root = parts.slice(0, appIdx + 1).join('/');
+      return `${window.location.origin}/${root}/PHP/module1.php`;
+    }
+  }
+  return 'http://localhost/SIAA_Module1/PHP/module1.php';
+})();
 
 // ── STATE ─────────────────────────────────────────────────────
 const S = {
@@ -26,7 +38,30 @@ async function api(route, params = {}, body = null) {
       ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       : { method: 'GET' };
     const res  = await fetch(url, opts);
-    return await res.json();
+    const raw  = await res.text();
+
+    let json = null;
+    try {
+      json = raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      // Non-JSON responses are typically wrong host/path or PHP fatal output.
+    }
+
+    if (!res.ok) {
+      return {
+        success: false,
+        message: json?.message || `HTTP ${res.status} ${res.statusText}`,
+      };
+    }
+
+    if (!json || typeof json.success === 'undefined') {
+      return {
+        success: false,
+        message: 'API did not return JSON. Open app via Apache localhost and check PHP errors.',
+      };
+    }
+
+    return json;
   } catch (e) {
     toast('error', 'Network Error', 'Could not reach server.');
     return { success: false, message: 'Network error' };
@@ -268,7 +303,14 @@ async function exportAssets() {
 
 function clearFilters() {
   ['a-search','a-filter-status','a-filter-cat','a-filter-dept','a-filter-loc'].forEach(id => set(id,''));
+  syncStatusPills('');
   loadAssets(1);
+}
+
+function syncStatusPills(value) {
+  document.querySelectorAll('.status-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === value);
+  });
 }
 
 // ── ATTACHMENTS ──
@@ -374,20 +416,118 @@ async function editStockItem(id) {
   if (!item) return;
   document.getElementById('modal-stock-title').textContent = 'Edit Item';
   await fillSelect('si-category_id', 'categories');
-  ['id','item_code','name','unit_of_measure','unit_cost','description'].forEach(f => set('si-'+f, item[f]));
+  ['id','item_code','name','unit_of_measure','description'].forEach(f => set('si-'+f, item[f]));
+  set('si-brand', '');
+  set('si-min_level', item.min_level || '');
+  set('si-max_level', item.max_level || '');
+  set('si-reorder_point', item.reorder_point || '');
   set('si-category_id', item.category_id);
   openModal('modal-stock-item');
 }
 
 async function saveStockItem() {
   const id   = val('si-id');
-  const body = { item_code: val('si-item_code'), name: val('si-name'), category_id: val('si-category_id')||null, unit_of_measure: val('si-unit_of_measure')||'pcs', unit_cost: val('si-unit_cost')||null, description: val('si-description')||null };
+  const brand = val('si-brand');
+  const desc = val('si-description');
+  const finalDesc = brand ? (`Brand: ${brand}${desc ? ` | ${desc}` : ''}`) : (desc || null);
+  const body = {
+    item_code: val('si-item_code'),
+    name: val('si-name'),
+    category_id: val('si-category_id')||null,
+    unit_of_measure: val('si-unit_of_measure')||'pcs',
+    description: finalDesc,
+    min_level: val('si-min_level') || null,
+    max_level: val('si-max_level') || null,
+    reorder_point: val('si-reorder_point') || null
+  };
   if (!body.item_code) { toast('warning','Required','Item Code is required.'); return; }
   if (!body.name)      { toast('warning','Required','Name is required.'); return; }
+  if (!body.category_id) { toast('warning','Required','Category is required.'); return; }
   if (id) body.id = id;
   const r = await api(id ? 'item_update' : 'item_create', {}, body);
-  if (r.success) { toast('success', id ? 'Item Updated' : 'Item Added'); closeModal('modal-stock-item'); loadStock(S.stockPage); }
+  if (r.success) {
+    toast('success', id ? 'Item Updated' : 'Item Added');
+    closeModal('modal-stock-item');
+    loadStock(S.stockPage);
+  }
   else toast('error', 'Failed', r.message);
+}
+
+// ── MASTER DATA (Departments / Sites / Locations) ──
+async function openMasterData() {
+  await loadMasterDataLists();
+  openModal('modal-masterdata');
+}
+
+async function loadMasterDataLists() {
+  const [depts, sites, locs] = await Promise.all([
+    getLookup('departments'),
+    getLookup('sites'),
+    getLookup('locations')
+  ]);
+
+  document.getElementById('md-dept-list').innerHTML = (depts?.length
+    ? depts.map(d => `<div class="mini-item"><span>${esc(d.name)}</span></div>`).join('')
+    : '<div class="mini-item"><span>No departments yet.</span></div>');
+
+  document.getElementById('md-site-list').innerHTML = (sites?.length
+    ? sites.map(s => `<div class="mini-item"><span>${esc(s.name)}</span></div>`).join('')
+    : '<div class="mini-item"><span>No sites yet.</span></div>');
+
+  document.getElementById('md-loc-list').innerHTML = (locs?.length
+    ? locs.map(l => `<div class="mini-item"><span>${esc((l.site_name ? `${l.site_name} › ` : '') + l.name)}</span></div>`).join('')
+    : '<div class="mini-item"><span>No locations yet.</span></div>');
+
+  const siteSel = document.getElementById('md-loc-site');
+  siteSel.innerHTML = '<option value="">Select site</option>';
+  (sites || []).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = s.name;
+    siteSel.appendChild(o);
+  });
+}
+
+async function addDepartment() {
+  const name = val('md-dept-name');
+  if (!name) { toast('warning', 'Required', 'Department name is required.'); return; }
+  const r = await api('lookup_create', { res: 'departments' }, { name });
+  if (!r.success) { toast('error', 'Failed', r.message); return; }
+  set('md-dept-name', '');
+  await refreshMasterLookups();
+  toast('success', 'Department Added');
+}
+
+async function addSite() {
+  const name = val('md-site-name');
+  if (!name) { toast('warning', 'Required', 'Site name is required.'); return; }
+  const r = await api('lookup_create', { res: 'sites' }, { name });
+  if (!r.success) { toast('error', 'Failed', r.message); return; }
+  set('md-site-name', '');
+  await refreshMasterLookups();
+  toast('success', 'Site Added');
+}
+
+async function addLocation() {
+  const siteId = val('md-loc-site');
+  const name = val('md-loc-name');
+  if (!siteId || !name) { toast('warning', 'Required', 'Site and location are required.'); return; }
+  const r = await api('lookup_create', { res: 'locations' }, { name, site_id: siteId });
+  if (!r.success) { toast('error', 'Failed', r.message); return; }
+  set('md-loc-name', '');
+  await refreshMasterLookups();
+  toast('success', 'Location Added');
+}
+
+async function refreshMasterLookups() {
+  Object.keys(LookupCache).forEach(k => delete LookupCache[k]);
+  await Promise.all([
+    fillSelect('a-filter-cat', 'categories', { blank: 'All' }),
+    fillSelect('a-filter-dept', 'departments', { blank: 'All' }),
+    fillSelect('a-filter-loc', 'locations', { blank: 'All', label:i=>(i.site_name?i.site_name+' › ':'')+i.name }),
+    fillSelect('s-filter-cat', 'categories', { blank: 'All Categories' })
+  ]);
+  await loadMasterDataLists();
 }
 
 // ── ISSUE STOCK ──
@@ -561,6 +701,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     fillSelect('a-filter-loc',  'locations',   { blank:'All', label:i=>(i.site_name?i.site_name+' › ':'')+i.name }),
     fillSelect('s-filter-cat',  'categories',  { blank:'All Categories' }),
   ]);
+
+  document.querySelectorAll('.status-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const status = btn.dataset.status || '';
+      set('a-filter-status', status);
+      syncStatusPills(status);
+      loadAssets(1);
+    });
+  });
+
+  document.getElementById('a-filter-status')?.addEventListener('change', e => {
+    syncStatusPills(e.target.value || '');
+  });
 
   // Load dashboard on start
   navigate('dashboard');

@@ -12,12 +12,12 @@ header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
 // ── Helpers ───────────────────────────────────────────────────
-function ok(mixed $data = null, string $msg = 'OK', int $code = 200): never {
+function ok($data = null, string $msg = 'OK', int $code = 200) {
     http_response_code($code);
     echo json_encode(['success' => true,  'message' => $msg, 'data' => $data], JSON_UNESCAPED_UNICODE);
     exit;
 }
-function fail(string $msg = 'Error', int $code = 400): never {
+function fail(string $msg = 'Error', int $code = 400) {
     http_response_code($code);
     echo json_encode(['success' => false, 'message' => $msg, 'data' => null], JSON_UNESCAPED_UNICODE);
     exit;
@@ -26,61 +26,67 @@ function body(): array {
     $raw = file_get_contents('php://input');
     return $raw ? (json_decode($raw, true) ?? $_POST) : $_POST;
 }
-function q(string $key, mixed $default = null): mixed {
+function q(string $key, $default = null) {
     return $_GET[$key] ?? $default;
 }
-function current_user(): int { return 1; } // Replace with session auth
+function current_user(): int {
+    return 1;
+} // Replace with session auth
 
 // ── Router ────────────────────────────────────────────────────
 $r      = q('r', '');
 $method = $_SERVER['REQUEST_METHOD'];
 
-match(true) {
-    // ── Dashboard ──────────────────────────────────────────
-    $r === 'dashboard'          => dashboard(),
+try {
+    switch ($r) {
+        // ── Dashboard ──────────────────────────────────────────
+        case 'dashboard':          dashboard(); break;
 
-    // ── Assets ─────────────────────────────────────────────
-    $r === 'asset_list'         => asset_list(),
-    $r === 'asset_view'         => asset_view(),
-    $r === 'asset_create'       => asset_create(),
-    $r === 'asset_update'       => asset_update(),
-    $r === 'asset_transfer'     => asset_transfer(),
-    $r === 'asset_status'       => asset_change_status(),
-    $r === 'asset_history'      => asset_history(),
+        // ── Assets ─────────────────────────────────────────────
+        case 'asset_list':         asset_list(); break;
+        case 'asset_view':         asset_view(); break;
+        case 'asset_create':       asset_create(); break;
+        case 'asset_update':       asset_update(); break;
+        case 'asset_transfer':     asset_transfer(); break;
+        case 'asset_status':       asset_change_status(); break;
+        case 'asset_history':      asset_history(); break;
 
-    // ── Attachments ─────────────────────────────────────────
-    $r === 'attach_list'        => attach_list(),
-    $r === 'attach_upload'      => attach_upload(),
-    $r === 'attach_delete'      => attach_delete(),
-    $r === 'attach_download'    => attach_download(),
+        // ── Attachments ─────────────────────────────────────────
+        case 'attach_list':        attach_list(); break;
+        case 'attach_upload':      attach_upload(); break;
+        case 'attach_delete':      attach_delete(); break;
+        case 'attach_download':    attach_download(); break;
 
-    // ── Stock Items ─────────────────────────────────────────
-    $r === 'item_list'          => item_list(),
-    $r === 'item_create'        => item_create(),
-    $r === 'item_update'        => item_update(),
+        // ── Stock Items ─────────────────────────────────────────
+        case 'item_list':          item_list(); break;
+        case 'item_create':        item_create(); break;
+        case 'item_update':        item_update(); break;
 
-    // ── Stock Transactions ──────────────────────────────────
-    $r === 'stock_list'         => stock_list(),
-    $r === 'stock_receive'      => stock_receive(),
-    $r === 'stock_issue'        => stock_issue(),
-    $r === 'stock_transfer'     => stock_transfer(),
-    $r === 'stock_adjust'       => stock_adjust(),
-    $r === 'stock_low'          => stock_low(),
-    $r === 'stock_transactions' => stock_transactions(),
+        // ── Stock Transactions ──────────────────────────────────
+        case 'stock_list':         stock_list(); break;
+        case 'stock_receive':      stock_receive(); break;
+        case 'stock_issue':        stock_issue(); break;
+        case 'stock_transfer':     stock_transfer(); break;
+        case 'stock_adjust':       stock_adjust(); break;
+        case 'stock_low':          stock_low(); break;
+        case 'stock_transactions': stock_transactions(); break;
 
-    // ── Lookups ─────────────────────────────────────────────
-    $r === 'lookup_list'        => lookup_list(),
-    $r === 'lookup_create'      => lookup_create(),
-    $r === 'lookup_update'      => lookup_update(),
-    $r === 'lookup_delete'      => lookup_delete(),
+        // ── Lookups ─────────────────────────────────────────────
+        case 'lookup_list':        lookup_list(); break;
+        case 'lookup_create':      lookup_create(); break;
+        case 'lookup_update':      lookup_update(); break;
+        case 'lookup_delete':      lookup_delete(); break;
 
-    default                     => fail("Unknown route: {$r}", 404),
-};
+        default:                   fail("Unknown route: {$r}", 404);
+    }
+} catch (Throwable $e) {
+    fail('Server error: ' . $e->getMessage(), 500);
+}
 
 // ════════════════════════════════════════════════════════════
 //  DASHBOARD
 // ════════════════════════════════════════════════════════════
-function dashboard(): never {
+function dashboard() {
     $db = db();
     $byStatus = [];
     foreach ($db->query("SELECT status, COUNT(*) as n FROM assets WHERE is_active=1 GROUP BY status")->fetchAll() as $row) {
@@ -122,7 +128,7 @@ function asset_select_sql(): string {
     LEFT JOIN assets      pa ON pa.id = a.parent_asset_id";
 }
 
-function asset_list(): never {
+function asset_list() {
     $db     = db();
     $page   = max(1, (int)q('page', 1));
     $limit  = max(1, min(100, (int)q('per_page', 15)));
@@ -152,7 +158,7 @@ function asset_list(): never {
     ok(['items' => $items, 'total' => $total, 'page' => $page, 'per_page' => $limit, 'total_pages' => (int)ceil($total / $limit)]);
 }
 
-function asset_view(): never {
+function asset_view() {
     $id  = (int)q('id');
     if (!$id) fail('Asset ID required.');
     $db  = db();
@@ -178,7 +184,7 @@ function asset_view(): never {
     ok($asset);
 }
 
-function asset_create(): never {
+function asset_create() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['asset_tag']))   fail("'Asset Tag' is required.");
@@ -204,7 +210,7 @@ function asset_create(): never {
     ok(['id' => $id], 'Asset created.', 201);
 }
 
-function asset_update(): never {
+function asset_update() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b  = body();
     $id = (int)($b['id'] ?? 0);
@@ -233,7 +239,7 @@ function asset_update(): never {
     ok(['id' => $id], 'Asset updated.');
 }
 
-function asset_transfer(): never {
+function asset_transfer() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b  = body();
     $id = (int)($b['asset_id'] ?? 0);
@@ -264,7 +270,7 @@ function asset_transfer(): never {
     ok(null, 'Asset transferred.');
 }
 
-function asset_change_status(): never {
+function asset_change_status() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b      = body();
     $id     = (int)($b['asset_id'] ?? 0);
@@ -281,7 +287,7 @@ function asset_change_status(): never {
     ok(null, 'Status updated.');
 }
 
-function asset_history(): never {
+function asset_history() {
     $id = (int)q('id');
     if (!$id) fail('Asset ID required.');
     $stmt = db()->prepare("SELECT ll.*, pb.full_name AS performed_by_name FROM asset_lifecycle_log ll LEFT JOIN users pb ON pb.id=ll.performed_by WHERE ll.asset_id=? ORDER BY ll.performed_at DESC");
@@ -292,7 +298,7 @@ function asset_history(): never {
 // ════════════════════════════════════════════════════════════
 //  ATTACHMENTS
 // ════════════════════════════════════════════════════════════
-function attach_list(): never {
+function attach_list() {
     $id = (int)q('asset_id');
     if (!$id) fail('asset_id required.');
     $stmt = db()->prepare("SELECT a.*, u.full_name AS uploaded_by_name FROM asset_attachments a LEFT JOIN users u ON u.id=a.uploaded_by WHERE a.asset_id=? ORDER BY a.uploaded_at DESC");
@@ -302,7 +308,7 @@ function attach_list(): never {
     ok($rows);
 }
 
-function attach_upload(): never {
+function attach_upload() {
     $assetId = (int)($_POST['asset_id'] ?? 0);
     $label   = $_POST['label'] ?? 'Other';
     if (!$assetId)        fail('asset_id required.');
@@ -329,7 +335,7 @@ function attach_upload(): never {
     ok(['id'=>$newId,'file_name'=>basename($file['name']),'file_path'=>$path], 'File uploaded.', 201);
 }
 
-function attach_delete(): never {
+function attach_delete() {
     $b  = body();
     $id = (int)($b['id'] ?? 0);
     if (!$id) fail('id required.');
@@ -342,7 +348,7 @@ function attach_delete(): never {
     ok(null, 'Deleted.');
 }
 
-function attach_download(): never {
+function attach_download() {
     $id   = (int)q('id');
     if (!$id) { http_response_code(400); echo 'Missing id.'; exit; }
     $stmt = db()->prepare("SELECT * FROM asset_attachments WHERE id=?"); $stmt->execute([$id]);
@@ -360,7 +366,7 @@ function attach_download(): never {
 // ════════════════════════════════════════════════════════════
 //  STOCK ITEMS
 // ════════════════════════════════════════════════════════════
-function item_list(): never {
+function item_list() {
     $page   = max(1, (int)q('page', 1));
     $limit  = max(1, min(100, (int)q('per_page', 15)));
     $offset = ($page - 1) * $limit;
@@ -386,7 +392,7 @@ function item_list(): never {
     ok(['items'=>$stmt->fetchAll(),'total'=>$total,'page'=>$page,'per_page'=>$limit,'total_pages'=>(int)ceil($total/$limit)]);
 }
 
-function item_create(): never {
+function item_create() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['item_code'])) fail("'Item Code' is required.");
@@ -402,10 +408,20 @@ function item_create(): never {
         'has_expiry'      => (int)($b['has_expiry'] ?? 0),
         'unit_cost'       => !empty($b['unit_cost']) ? (float)$b['unit_cost'] : null,
     ]);
+    $min = isset($b['min_level']) ? (float)$b['min_level'] : null;
+    $max = isset($b['max_level']) ? (float)$b['max_level'] : null;
+    $rop = isset($b['reorder_point']) ? (float)$b['reorder_point'] : null;
+    if ($min !== null || $max !== null || $rop !== null) {
+        $locs = db()->query("SELECT id FROM locations WHERE is_active=1")->fetchAll();
+        foreach ($locs as $loc) {
+            db()->prepare("INSERT INTO stock_levels (item_id,location_id,quantity_on_hand,min_level,max_level,reorder_point) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE min_level=VALUES(min_level), max_level=VALUES(max_level), reorder_point=VALUES(reorder_point)")
+               ->execute([$id, (int)$loc['id'], 0, $min ?? 0, $max, $rop]);
+        }
+    }
     ok(['id' => $id], 'Item created.', 201);
 }
 
-function item_update(): never {
+function item_update() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b  = body();
     $id = (int)($b['id'] ?? 0);
@@ -414,15 +430,25 @@ function item_update(): never {
     $data = [];
     foreach ($allowed as $col) { if (array_key_exists($col, $b)) $data[$col] = $b[$col] === '' ? null : $b[$col]; }
     db_update('stock_items', $id, $data);
+    if (isset($b['min_level']) || isset($b['max_level']) || isset($b['reorder_point'])) {
+        $min = isset($b['min_level']) ? (float)$b['min_level'] : 0;
+        $max = isset($b['max_level']) && $b['max_level'] !== '' ? (float)$b['max_level'] : null;
+        $rop = isset($b['reorder_point']) && $b['reorder_point'] !== '' ? (float)$b['reorder_point'] : null;
+        $locs = db()->query("SELECT id FROM locations WHERE is_active=1")->fetchAll();
+        foreach ($locs as $loc) {
+            db()->prepare("INSERT INTO stock_levels (item_id,location_id,quantity_on_hand,min_level,max_level,reorder_point) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE min_level=VALUES(min_level), max_level=VALUES(max_level), reorder_point=VALUES(reorder_point)")
+               ->execute([$id, (int)$loc['id'], get_stock_qty($id, (int)$loc['id']), $min, $max, $rop]);
+        }
+    }
     ok(['id' => $id], 'Item updated.');
 }
 
 // ════════════════════════════════════════════════════════════
 //  STOCK TRANSACTIONS
 // ════════════════════════════════════════════════════════════
-function stock_list(): never { item_list(); } // same query
+function stock_list() { item_list(); } // same query
 
-function stock_receive(): never {
+function stock_receive() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['item_id']) || empty($b['location_id']) || empty($b['quantity'])) fail('item_id, location_id, quantity required.');
@@ -435,7 +461,7 @@ function stock_receive(): never {
     } catch (Throwable $e) { $db->rollBack(); fail($e->getMessage(), 500); }
 }
 
-function stock_issue(): never {
+function stock_issue() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['item_id']) || empty($b['location_id']) || empty($b['quantity'])) fail('item_id, location_id, quantity required.');
@@ -451,7 +477,7 @@ function stock_issue(): never {
     } catch (Throwable $e) { $db->rollBack(); fail($e->getMessage(), 500); }
 }
 
-function stock_transfer(): never {
+function stock_transfer() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['item_id']) || empty($b['from_location_id']) || empty($b['to_location_id']) || empty($b['quantity'])) fail('item_id, from_location_id, to_location_id, quantity required.');
@@ -468,7 +494,7 @@ function stock_transfer(): never {
     } catch (Throwable $e) { $db->rollBack(); fail($e->getMessage(), 500); }
 }
 
-function stock_adjust(): never {
+function stock_adjust() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $b = body();
     if (empty($b['item_id']) || empty($b['location_id']) || !isset($b['new_quantity'])) fail('item_id, location_id, new_quantity required.');
@@ -483,12 +509,12 @@ function stock_adjust(): never {
     } catch (Throwable $e) { $db->rollBack(); fail($e->getMessage(), 500); }
 }
 
-function stock_low(): never {
+function stock_low() {
     $rows = db()->query("SELECT si.id, si.item_code, si.name, si.unit_of_measure, sl.location_id, l.name AS location_name, sl.quantity_on_hand, sl.reorder_point, sl.min_level FROM stock_levels sl JOIN stock_items si ON si.id=sl.item_id JOIN locations l ON l.id=sl.location_id WHERE si.is_active=1 AND sl.quantity_on_hand <= COALESCE(sl.reorder_point, sl.min_level) ORDER BY sl.quantity_on_hand ASC")->fetchAll();
     ok($rows);
 }
 
-function stock_transactions(): never {
+function stock_transactions() {
     $page   = max(1, (int)q('page', 1));
     $limit  = 20;
     $offset = ($page - 1) * $limit;
@@ -506,7 +532,7 @@ function stock_transactions(): never {
 // ════════════════════════════════════════════════════════════
 //  LOOKUPS (shared reference data for all modules)
 // ════════════════════════════════════════════════════════════
-function lookup_list(): never {
+function lookup_list() {
     $res     = q('res', '');
     $allowed = ['categories','departments','sites','locations','vendors','users'];
     if (!in_array($res, $allowed)) fail("Unknown resource '$res'.");
@@ -527,7 +553,7 @@ function lookup_list(): never {
     ok($db->query("SELECT * FROM `$res` WHERE is_active=1 ORDER BY name")->fetchAll());
 }
 
-function lookup_create(): never {
+function lookup_create() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $res = q('res', '');
     $allowed = ['categories','departments','sites','locations','vendors','users'];
@@ -541,7 +567,7 @@ function lookup_create(): never {
     ok(['id' => $id], ucfirst($res).' created.', 201);
 }
 
-function lookup_update(): never {
+function lookup_update() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $res = q('res', ''); $id = (int)q('id');
     $allowed = ['categories','departments','sites','locations','vendors','users'];
@@ -555,7 +581,7 @@ function lookup_update(): never {
     ok(['id' => $id], ucfirst($res).' updated.');
 }
 
-function lookup_delete(): never {
+function lookup_delete() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('POST required.', 405);
     $res = q('res', ''); $id = (int)q('id');
     $allowed = ['categories','departments','sites','locations','vendors','users'];

@@ -45,6 +45,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
     Incident Logs
   </a>
+  <a class="nav-item" href="module5b.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/></svg>
+    Asset Health
+  </a>
+  <div class="sb-section">ADMINISTRATION</div>
   <a class="nav-item" href="module6.html">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     System Admin
@@ -65,7 +70,7 @@
     <h1 class="tb-title" id="tb-title">Dashboard</h1>
     <div class="tb-search">
       <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="global-search" placeholder="Search assets, serials, tags..." onkeydown="if(event.key==='Enter'){set('a-search',this.value.trim());navigate('assets')}">
+      <input type="text" id="global-search" placeholder="Search assets, serials, tags, users..." onkeydown="if(event.key==='Enter'){set('a-search',this.value.trim());navigate('assets')}">
     </div>
     <div class="tb-spacer"></div>
     <div class="role-toggle"><button class="active">User</button><button>Admin</button></div>
@@ -84,7 +89,8 @@
           <div class="page-title">Good morning, Juan</div>
           <div style="font-size:13px;color:var(--text-2);margin-top:2px">IT Asset overview — <span id="today-date"></span></div>
         </div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="tb-admin-label">System Admin</div>
           <button class="btn btn-secondary" onclick="navigate('assets')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export Report
           </button>
@@ -120,6 +126,7 @@
       <div class="page-hdr">
         <div class="page-title">Asset Master</div>
         <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="openMasterData()">Manage Lists</button>
           <button class="btn btn-secondary" onclick="exportAssets()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export
           </button>
@@ -127,6 +134,12 @@
         </div>
       </div>
       <div class="filter-bar">
+        <div class="status-pills">
+          <button class="status-pill active" data-status="">All</button>
+          <button class="status-pill" data-status="In-Use">Active</button>
+          <button class="status-pill" data-status="Retired">Retired</button>
+        </div>
+        <div class="filter-divider"></div>
         <label>Category</label><select class="fselect" id="a-filter-cat"><option value="">All</option></select>
         <label>Status</label>
         <select class="fselect" id="a-filter-status">
@@ -161,8 +174,8 @@
       <div class="page-hdr">
         <div class="page-title">Stock Room</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" onclick="openReceivedStock()">Received Stock</button>
           <button class="btn btn-secondary" onclick="openIssueStock()">Issue Stock</button>
+          <button class="btn btn-secondary" onclick="openReceivedStock()">Received Stock</button>
           <button class="btn btn-primary"   onclick="openAddStockItem()">Add Item</button>
         </div>
       </div>
@@ -174,7 +187,7 @@
       </div>
       <div class="table-card">
         <div class="table-toolbar">
-          <div class="tsearch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="s-search" placeholder="Search items..." onkeydown="if(event.key==='Enter')loadStock(1)"></div>
+          <div class="tsearch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="s-search" placeholder="Search serial, tag, asset..." onkeydown="if(event.key==='Enter')loadStock(1)"></div>
           <select class="fselect" id="s-filter-cat"><option value="">All Categories</option></select>
           <button class="btn btn-secondary btn-sm" onclick="loadStock(1)">Filter</button>
         </div>
@@ -362,13 +375,16 @@
         <input type="hidden" id="si-id">
         <div class="form-group" style="margin-bottom:14px"><label class="form-label">Item Code <span class="req">*</span></label><input class="form-control" id="si-item_code" placeholder="ITEM-001"></div>
         <div class="form-grid">
-          <div class="form-group"><label class="form-label">Name <span class="req">*</span></label><input class="form-control" id="si-name" placeholder="e.g. Bond Paper"></div>
-          <div class="form-group"><label class="form-label">Category</label><select class="form-control" id="si-category_id"><option value="">Select</option></select></div>
-          <div class="form-group"><label class="form-label">Unit of Measure</label>
+          <div class="form-group"><label class="form-label">Item Name <span class="req">*</span></label><input class="form-control" id="si-name" placeholder="e.g. Bond Paper"></div>
+          <div class="form-group"><label class="form-label">Brand</label><input class="form-control" id="si-brand" placeholder="e.g. Dell"></div>
+          <div class="form-group"><label class="form-label">Category <span class="req">*</span></label><select class="form-control" id="si-category_id"><option value="">Select a category</option></select></div>
+          <div class="form-group"><label class="form-label">Unit of Measure <span class="req">*</span></label>
             <select class="form-control" id="si-unit_of_measure"><option value="pcs">pcs</option><option value="box">box</option><option value="ream">ream</option><option value="liter">liter</option><option value="bottle">bottle</option><option value="set">set</option></select>
           </div>
-          <div class="form-group"><label class="form-label">Unit Cost</label><input class="form-control" id="si-unit_cost" type="number" step="0.01" placeholder="0.00"></div>
-          <div class="form-group f-full"><label class="form-label">Description</label><textarea class="form-control" id="si-description" rows="2" placeholder="Optional"></textarea></div>
+          <div class="form-group"><label class="form-label">Min Level</label><input class="form-control" id="si-min_level" type="number" step="0.001" placeholder="e.g. 20"></div>
+          <div class="form-group"><label class="form-label">Max Level</label><input class="form-control" id="si-max_level" type="number" step="0.001" placeholder="e.g. 100"></div>
+          <div class="form-group"><label class="form-label">Reorder Point (ROP)</label><input class="form-control" id="si-reorder_point" type="number" step="0.001" placeholder="e.g. 20"></div>
+          <div class="form-group f-full"><label class="form-label">Description</label><textarea class="form-control" id="si-description" rows="2" placeholder="Enter description (optional)"></textarea></div>
         </div>
       </form>
     </div>
@@ -422,6 +438,48 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-grn')">Cancel</button>
       <button class="btn btn-primary" onclick="confirmGRN()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: MASTER DATA (DEPT/SITE/LOCATION) ══ -->
+<div class="modal-overlay" id="modal-masterdata">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <span class="modal-hdr-title">MANAGE REFERENCE DATA</span>
+      <button class="modal-x" onclick="closeModal('modal-masterdata')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="table-card" style="padding:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Departments</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input class="form-control" id="md-dept-name" placeholder="Department name">
+            <button class="btn btn-primary btn-sm" onclick="addDepartment()">Add</button>
+          </div>
+          <div id="md-dept-list" class="mini-list">No data yet.</div>
+        </div>
+        <div class="table-card" style="padding:14px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Sites</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input class="form-control" id="md-site-name" placeholder="Site name">
+            <button class="btn btn-primary btn-sm" onclick="addSite()">Add</button>
+          </div>
+          <div id="md-site-list" class="mini-list">No data yet.</div>
+        </div>
+        <div class="table-card" style="padding:14px;grid-column:1/-1">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Locations</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:10px">
+            <select class="form-control" id="md-loc-site"><option value="">Select site</option></select>
+            <input class="form-control" id="md-loc-name" placeholder="Location name (e.g. Stock Room)">
+            <button class="btn btn-primary btn-sm" onclick="addLocation()">Add</button>
+          </div>
+          <div id="md-loc-list" class="mini-list">No data yet.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-masterdata')">Close</button>
     </div>
   </div>
 </div>
